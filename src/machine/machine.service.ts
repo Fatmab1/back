@@ -1,5 +1,5 @@
 // src/machine/service/machine.service.ts
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Machine } from './machine.entity';
@@ -16,40 +16,91 @@ export class MachineService {
     private capteurservice : CapteurService // Injecte le repository Workshop
   ) {}
 
-  // Créer une machine
-  async create(nom: string, id_workshop: number): Promise<Machine> {
-    const workshop = await this.workshopRepository.findOne({ where: { id_workshop } });
-    if (!workshop) {
-      throw new NotFoundException(`Workshop avec ID ${id_workshop} non trouvé`);
-    }
-
-    const machine = this.machineRepository.create({
-      nom,
-      workshop: workshop,  // Associe la machine au workshop via la relation
-    });
-
-    return this.machineRepository.save(machine);
-  }
-
-  async delete(key: string): Promise<any> {
+  async deleteLinked(id_workshop: number): Promise<{ deletedCount: number }> {
     try {
-      const deleteResult = await this.machineRepository.delete({
-        nom:key
+      // Find all machines in this workshop
+      const machines = await this.machineRepository.find({
+        where: { workshop: { id_workshop } },
+        relations: ['capteurs'] 
       });
   
-      if (deleteResult.affected === 0) {
-        throw new NotFoundException(`Machine with Key ${key} not found`);
+      if (machines.length === 0) {
+        return { deletedCount: 0 };
       }
   
-      return deleteResult;
+      let totalDeleted = 0;
+  
+      // Delete all sensors for each machine
+      for (const machine of machines) {
+        if (machine.id_machine) {
+          const result = await this.capteurservice.deleteLinked(machine.id_machine);
+          totalDeleted += result.deletedCount || 0;
+          this.remove(machine.id_machine)
+        }
+      }
+  
+      return { deletedCount: totalDeleted };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      console.error(`Error deleting linked machines for workshop ${id_workshop}:`, error);
+      throw new InternalServerErrorException('Failed to delete linked machines and sensors');
+    }
+  }
+  
+  async delete(key: string): Promise<any> {
+    try {
+      if (!key) {
+        throw new BadRequestException('Machine name is required');
+      }
+  
+      // Find machine with its relations
+      const machine = await this.machineRepository.findOne({
+        where: { nom: key },
+        relations: ['workshop', 'capteurs']
+      });
+  
+      // if (!machine) {
+      //   throw new NotFoundException(`Machine with name ${key} not found`);
+      // }
+  
+      // Delete all associated sensors first
+      if (machine?.id_machine) {
+        await this.capteurservice.delete(machine.nom);
+      }
+  
+      // Delete the machine
+      const deleteResult = await this.machineRepository.delete({ nom: key });
+  
+      if (deleteResult.affected === 0) {
+        throw new NotFoundException(`Machine with name ${key} could not be deleted`);
+      }
+      if(machine && machine.id_machine){
+        return { id: machine.id_machine, deleted: true };
+      }
+
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      throw new InternalServerErrorException('Failed to delete Machine ');
+      console.error(`Error deleting machine ${key}:`, error);
+      throw new InternalServerErrorException('Failed to delete machine');
     }
   }
 
+
+    // Créer une machine
+    async create(nom: string, id_workshop: number): Promise<Machine> {
+      const workshop = await this.workshopRepository.findOne({ where: { id_workshop } });
+      if (!workshop) {
+        throw new NotFoundException(`Workshop avec ID ${id_workshop} non trouvé`);
+      }
+  
+      const machine = this.machineRepository.create({
+        nom,
+        workshop: workshop,  // Associe la machine au workshop via la relation
+      });
+  
+      return this.machineRepository.save(machine);
+    }
   // Récupérer toutes les machines
   async findAll(): Promise<Machine[]> {
     return this.machineRepository.find({ relations: ['workshop'] });
@@ -91,8 +142,8 @@ export class MachineService {
   }
 
 
-    // get Machines by workshopId
-    async getMachines(id: number): Promise<any> {
+  // get Machines by workshopId
+  async getMachines(id: number): Promise<any> {
       const machines = await this.machineRepository.find({
         where: { workshop: { id_workshop: id } }, 
       });
@@ -116,7 +167,7 @@ export class MachineService {
       return result
     }
 
-      getIdByName=async(label : string)=>{
+  async getIdByName(label : string){
         try {
           const machine = await this.machineRepository.findOne({where:{nom:label}})
           if(machine){
@@ -127,5 +178,5 @@ export class MachineService {
               throw new NotFoundException('Error to get id by name');
             }
     
-      }
+  }
 }

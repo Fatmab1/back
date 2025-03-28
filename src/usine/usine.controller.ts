@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, BadRequestException, InternalServerErrorException, NotFoundException, HttpException, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, BadRequestException, InternalServerErrorException, NotFoundException, HttpException, Param, Delete } from '@nestjs/common';
 import { UsineService } from './usine.service';
 import { Usine } from './usine.entity';
 import { InitializeData } from './dto/initializeData.dto';
@@ -100,12 +100,12 @@ export class UsineController {
   }
 
   //delete node
-   @Get('deleteNode/:value')
+   @Delete('deleteNode/:value')
    async deleteNode(@Param('value') value: string): Promise<any> {
     try {
       const [nodeType, key] = value.split('_', 2);
 
-      console.log('Received node data:', nodeType , key);
+      console.log('Received node data:', nodeType ,"key:", key);
       
       // Validate input
       if (!key  || !nodeType) {
@@ -122,7 +122,7 @@ export class UsineController {
           return this.uniteFabricationService.delete(key);
         }
           
-        case 'atelier': {
+        case 'workshop': {
           return this.worshopService.delete(key);
         }
           
@@ -130,7 +130,7 @@ export class UsineController {
           return this.machineService.delete(key);
         }
         case 'sensor':{
-          return this.capteurService.delete(key);
+          return this.capteurService.delete((key));
         }
           
         default:

@@ -37,7 +37,7 @@ export class CapteurController {
 
   // Supprimer un capteur
   @Delete(':id')
-  remove(@Param('id') id: number): Promise<void> {
+  remove(@Param('id') id: number): Promise<any> {
     return this.capteurService.remove(id);
   }
 

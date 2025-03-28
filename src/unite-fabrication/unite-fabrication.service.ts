@@ -1,5 +1,5 @@
 // src/unite-fabrication/service/unite-fabrication.service.ts
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UniteFabrication } from './unite-fabrication.entity';
@@ -16,7 +16,78 @@ export class UniteFabricationService {
     private worshopsservice : WorkshopService
   ) {}
 
-  // Créer une unité de fabrication
+  async deleteLinked(id_usine: number): Promise<{ deletedCount: number }> {
+    try {
+      // Find all fabrication units in this factory
+      const unites = await this.uniteFabricationRepository.find({
+        where: { usine: { id_usine } },
+        relations: ['workshops'] // Load workshops if needed
+      });
+  
+      if (unites.length === 0) {
+        return { deletedCount: 0 };
+      }
+  
+      let totalDeleted = 0;
+  
+      // Delete all workshops for each fabrication unit
+      for (const unite of unites) {
+        if (unite.id_uniteF) {
+          const result = await this.worshopsservice.deleteLinked(unite.id_uniteF);
+          totalDeleted += result.deletedCount || 0;
+          
+          // Delete the fabrication unit itself
+          await this.uniteFabricationRepository.delete({ id_uniteF: unite.id_uniteF });
+          totalDeleted += 1; // Count the unit deletion
+        }
+      }
+  
+      return { deletedCount: totalDeleted };
+    } catch (error) {
+      console.error(`Error deleting linked units for factory ${id_usine}:`, error);
+      throw new InternalServerErrorException('Failed to delete linked fabrication units and workshops');
+    }
+  }
+  
+  async delete(key: string): Promise<{ id: number, deleted: true }> {
+    try {
+      if (!key) {
+        throw new BadRequestException('Fabrication unit name is required');
+      }
+  
+      // Find unit with its relations
+      const unite = await this.uniteFabricationRepository.findOne({
+        where: { nom: key },
+        relations: ['usine', 'workshops']
+      });
+  
+      if (!unite) {
+        throw new NotFoundException(`Fabrication unit with name ${key} not found`);
+      }
+  
+      // Delete all associated workshops first
+      if (unite.id_uniteF) {
+        const deleteResult = await this.worshopsservice.deleteLinked(unite.id_uniteF);
+        console.log(`Deleted ${deleteResult.deletedCount} workshops from unit ${key}`);
+      }
+  
+      // Delete the fabrication unit
+      const deleteUnitResult = await this.uniteFabricationRepository.delete({ nom: key });
+  
+      if (deleteUnitResult.affected === 0) {
+        throw new NotFoundException(`Fabrication unit with name ${key} could not be deleted`);
+      }
+  
+      return { id: unite.id_uniteF, deleted: true };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      console.error(`Error deleting fabrication unit ${key}:`, error);
+      throw new InternalServerErrorException('Failed to delete fabrication unit');
+    }
+  }
+
   async create(nom: string, id_usine: number): Promise<UniteFabrication> {
     const usine = await this.usineRepository.findOne({ where: { id_usine } });
     if (!usine) {
@@ -29,25 +100,6 @@ export class UniteFabricationService {
     });
 
     return this.uniteFabricationRepository.save(uniteFabrication);
-  }
-
-  async delete(key: string): Promise<any> {
-    try {
-      const deleteResult = await this.uniteFabricationRepository.delete({
-        nom:key
-      });
-  
-      if (deleteResult.affected === 0) {
-        throw new NotFoundException(`Unite Fabrication with Key ${key} not found`);
-      }
-  
-      return deleteResult;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Failed to delete Unite Fabrication ');
-    }
   }
   // Récupérer toutes les unités de fabrication
   async findAll(): Promise<UniteFabrication[]> {
@@ -131,7 +183,7 @@ export class UniteFabricationService {
       throw new NotFoundException('Erreur lors de la récupération des unités de fabrication');
     }
   }
-  getIdByName=async(label : string)=>{
+  async getIdByName(label : string){
     try {
       const uniteFabrication = await this.uniteFabricationRepository.findOne({where:{nom:label}})
       if(uniteFabrication){

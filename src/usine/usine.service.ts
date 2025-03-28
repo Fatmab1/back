@@ -26,13 +26,21 @@ export class UsineService {
 
   async delete(key: string): Promise<any> {
     try {
+      const r =await this.usineRepository.findOneBy({
+        nom:key  
+      })
+      if(r){
+      await this.uniteFabrication.deleteLinked(r?.id_usine)
+      }
       const deleteResult = await this.usineRepository.delete({
         nom:key
       });
+
   
       if (deleteResult.affected === 0) {
-        throw new NotFoundException(`Usine with Key ${key} not found`);
+        return null
       }
+      
   
       return deleteResult;
     } catch (error) {
