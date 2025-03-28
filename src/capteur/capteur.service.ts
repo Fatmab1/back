@@ -1,5 +1,5 @@
 // src/capteur/service/capteur.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Capteur } from './capteur.entity';
@@ -35,6 +35,24 @@ export class CapteurService {
     return this.capteurRepository.find({ relations: ['machine'] });  // Charge aussi la machine liée
   }
 
+  async delete(key: string): Promise<any> {
+    try {
+      const deleteResult = await this.capteurRepository.delete({
+        type:key
+      });
+  
+      if (deleteResult.affected === 0) {
+        throw new NotFoundException(`capteur with Key ${key} not found`);
+      }
+  
+      return deleteResult;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to delete usine');
+    }
+  }
   // Récupérer un capteur par son ID
   async findOne(id: number): Promise<Capteur> {
     const capteur = await this.capteurRepository.findOne({

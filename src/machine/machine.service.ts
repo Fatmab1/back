@@ -1,5 +1,5 @@
 // src/machine/service/machine.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Machine } from './machine.entity';
@@ -29,6 +29,25 @@ export class MachineService {
     });
 
     return this.machineRepository.save(machine);
+  }
+
+  async delete(key: string): Promise<any> {
+    try {
+      const deleteResult = await this.machineRepository.delete({
+        nom:key
+      });
+  
+      if (deleteResult.affected === 0) {
+        throw new NotFoundException(`Machine with Key ${key} not found`);
+      }
+  
+      return deleteResult;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to delete Machine ');
+    }
   }
 
   // Récupérer toutes les machines

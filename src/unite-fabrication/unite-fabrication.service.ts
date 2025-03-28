@@ -1,5 +1,5 @@
 // src/unite-fabrication/service/unite-fabrication.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UniteFabrication } from './unite-fabrication.entity';
@@ -31,6 +31,24 @@ export class UniteFabricationService {
     return this.uniteFabricationRepository.save(uniteFabrication);
   }
 
+  async delete(key: string): Promise<any> {
+    try {
+      const deleteResult = await this.uniteFabricationRepository.delete({
+        nom:key
+      });
+  
+      if (deleteResult.affected === 0) {
+        throw new NotFoundException(`Unite Fabrication with Key ${key} not found`);
+      }
+  
+      return deleteResult;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to delete Unite Fabrication ');
+    }
+  }
   // Récupérer toutes les unités de fabrication
   async findAll(): Promise<UniteFabrication[]> {
     return this.uniteFabricationRepository.find({ relations: ['usine'] });

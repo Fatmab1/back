@@ -1,5 +1,5 @@
 // src/workshop/service/workshop.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Workshop } from './workshop.entity';
@@ -30,6 +30,25 @@ export class WorkshopService {
     });
 
     return this.workshopRepository.save(workshop);
+  }
+
+  async delete(key: string): Promise<any> {
+    try {
+      const deleteResult = await this.workshopRepository.delete({
+        nom:key
+      });
+  
+      if (deleteResult.affected === 0) {
+        throw new NotFoundException(`workshop with Key ${key} not found`);
+      }
+  
+      return deleteResult;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to delete workshop ');
+    }
   }
 
   // Récupérer tous les workshops

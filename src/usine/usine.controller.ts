@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, BadRequestException, InternalServerErrorException, NotFoundException, HttpException } from '@nestjs/common';
+import { Controller, Post, Body, Get, BadRequestException, InternalServerErrorException, NotFoundException, HttpException, Param } from '@nestjs/common';
 import { UsineService } from './usine.service';
 import { Usine } from './usine.entity';
 import { InitializeData } from './dto/initializeData.dto';
@@ -36,7 +36,7 @@ export class UsineController {
     return await this.usineService.getInitializeData();
   }
 
-  
+  // create node
   @Post('addNode')
   async addNode(
     @Body() body: { 
@@ -98,4 +98,50 @@ export class UsineController {
       throw new InternalServerErrorException('Impossible d\'ajouter le nœud');
     }
   }
+
+  //delete node
+   @Get('deleteNode/:value')
+   async deleteNode(@Param('value') value: string): Promise<any> {
+    try {
+      const [nodeType, key] = value.split('_', 2);
+
+      console.log('Received node data:', nodeType , key);
+      
+      // Validate input
+      if (!key  || !nodeType) {
+        throw new BadRequestException('Données invalides pour supprimer un nœud');
+      }
+  
+      // Determine the appropriate service method based on parent type
+      switch (nodeType) {
+        case 'usine': {
+          return this.usineService.delete(key);
+        }
+          
+        case 'unite': {
+          return this.uniteFabricationService.delete(key);
+        }
+          
+        case 'atelier': {
+          return this.worshopService.delete(key);
+        }
+          
+        case 'machine': {
+          return this.machineService.delete(key);
+        }
+        case 'sensor':{
+          return this.capteurService.delete(key);
+        }
+          
+        default:
+          throw new BadRequestException('Type de nœud  non reconnu');
+      }
+    } catch (error) {
+      console.error('Erreur lors de suppression du nœud:', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Impossible de supprimerle nœud');
+    }
+   }
 }

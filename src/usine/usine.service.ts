@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usine } from './usine.entity';
@@ -23,6 +23,26 @@ export class UsineService {
   async findAll(): Promise<Usine[]> {
     return this.usineRepository.find();
   }
+
+  async delete(key: string): Promise<any> {
+    try {
+      const deleteResult = await this.usineRepository.delete({
+        nom:key
+      });
+  
+      if (deleteResult.affected === 0) {
+        throw new NotFoundException(`Usine with Key ${key} not found`);
+      }
+  
+      return deleteResult;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to delete usine');
+    }
+  }
+
 
 
   // 1-get usine information
@@ -78,6 +98,7 @@ export class UsineService {
         }
 
   }
+
   
 
 
