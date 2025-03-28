@@ -79,15 +79,34 @@ export class MachineService {
       });
   
       if (machines.length === 0) {
-        throw new NotFoundException(`Aucun capteur trouvé pour la machine avec ID ${id}`);
+        return []
       }
-      console.log("machines", machines);
       
       let result : any = []
       for(let i = 0 ; i <machines.length;i++){
         let r = await this.capteurservice.getCapteurs(machines[i].id_machine);
-        result.push(r)
+        if(r.length==0){
+          r=[]
+        }
+        let s = {
+          machine :(machines[i].nom),
+          capteurs :r
+        }
+        result.push(s)
       }
       return result
     }
+
+      getIdByName=async(label : string)=>{
+        try {
+          const machine = await this.machineRepository.findOne({where:{nom:label}})
+          if(machine){
+            return machine.id_machine;
+          }
+          return null
+            } catch (error) {
+              throw new NotFoundException('Error to get id by name');
+            }
+    
+      }
 }

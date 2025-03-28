@@ -82,12 +82,11 @@ export class UniteFabricationService {
       const unites = await this.uniteFabricationRepository.find({
         where: { usine: { id_usine: id } },
       });
-      console.log("unites",unites);
       
   
       // Check if there are no units found
       if (unites.length === 0) {
-        throw new NotFoundException(`Aucun unite de fabrication trouvé pour l'usine avec ID ${id}`);
+        return []
       }
   
       // Initialize an array to store the results
@@ -95,11 +94,15 @@ export class UniteFabricationService {
   
       // Loop through each uniteFabrication and get the associated workshops
       for (let i = 0; i < unites.length; i++) {
-        const workshops = await this.worshopsservice.getWorshops(unites[i].id_uniteF);
-        if (workshops) {
-          result.push(workshops);
+        let r = await this.worshopsservice.getWorshops(unites[i].id_uniteF);  
+        if(r.length==0){
+          r=[]
         }
-        console.log("workshops",workshops);
+        let s ={
+          uniteFabrications : unites[i].nom,
+          workshops:r
+        }
+        result.push(s)
         
       }
   
@@ -110,5 +113,16 @@ export class UniteFabricationService {
       throw new NotFoundException('Erreur lors de la récupération des unités de fabrication');
     }
   }
-  
+  getIdByName=async(label : string)=>{
+    try {
+      const uniteFabrication = await this.uniteFabricationRepository.findOne({where:{nom:label}})
+      if(uniteFabrication){
+        return uniteFabrication.id_uniteF;
+      }
+      return null
+        } catch (error) {
+          throw new NotFoundException('Error to get id by name');
+        }
+
+  }
 }

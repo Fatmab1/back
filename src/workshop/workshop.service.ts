@@ -80,18 +80,37 @@ export class WorkshopService {
         const worshops = await this.workshopRepository.find({
           where: { uniteFabrication: { id_uniteF: id } }, 
         });
-        console.log("workshop",worshops);
         
         
         if (worshops.length === 0) {
-          throw new NotFoundException(`Aucun capteur trouvé pour la machine avec ID ${id}`);
+          return []
         }
         let result : any = []
         for(let i = 0 ; i <worshops.length;i++){
           let r = await this.machineservice.getMachines(worshops[i].id_workshop);
-          result.push(r)
+          if(r.length==0){
+            r=[]
+          }
+          let s ={
+            workshop : worshops[i].nom,
+            machines:r
+          }
+          result.push(s)
         }
         return result
+    
+      }
+
+      getIdByName=async(label : string)=>{
+        try {
+          const workshop = await this.workshopRepository.findOne({where:{nom:label}})
+          if(workshop){
+            return workshop.id_workshop;
+          }
+          return null
+            } catch (error) {
+              throw new NotFoundException('Error to get id by name');
+            }
     
       }
 }

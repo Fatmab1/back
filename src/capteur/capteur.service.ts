@@ -79,10 +79,9 @@ export class CapteurService {
     const capteurs = await this.capteurRepository.find({
       where: { machine: { id_machine: id } }, 
     });
-    console.log("capteurs",capteurs);
     
     if (capteurs.length === 0) {
-      throw new NotFoundException(`Aucun capteur trouvé pour la machine avec ID ${id}`);
+      return []
     }
 
     return capteurs;

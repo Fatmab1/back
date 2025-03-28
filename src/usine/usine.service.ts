@@ -31,13 +31,13 @@ export class UsineService {
   // 4-for every workshops we get machine
   // 5-for every machine we get capteur
   getInitializeData = async (): Promise<any> => {
+    
     try {
       // Initialize an empty result array
       const result: any[] = [];
   
       // 1. Get usine information
       const usineData = await this.usineRepository.find();
-      console.log("usines",usineData);
       
       // Check if usineData is empty
       if (!usineData || usineData.length === 0) {
@@ -46,20 +46,37 @@ export class UsineService {
   
       // 2. For every factory, get uniteFabrication
       for (let i = 0; i < usineData.length; i++) {
-        const r = await this.uniteFabrication.getUniteFabrication(usineData[i].id_usine);
-        if (r) {
-          console.log("rrrrrrrr",r);
-          
-          result.push(r);
+        let r = await this.uniteFabrication.getUniteFabrication(usineData[i].id_usine);
+        if(r.length==0){
+          r=[]
         }
+        const s ={
+          usine : usineData[i].nom,
+          uniteFabrications : r
+        }
+          result.push(s);
       }
-      console.log("result",result);
+      console.log("doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+
       
-  
       return result;
+      
     } catch (error) {
       throw new NotFoundException('Error to initialize data');
     }
+  }
+
+  getIdByName=async(label : string)=>{
+    try {
+      const usine = await this.usineRepository.findOne({where:{nom:label}})
+      if(usine){
+        return usine.id_usine;
+      }
+      return null
+        } catch (error) {
+          throw new NotFoundException('Error to get id by name');
+        }
+
   }
   
 
