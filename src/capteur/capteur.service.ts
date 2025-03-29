@@ -140,6 +140,7 @@ export class CapteurService {
       return []
     }
 
+
     return capteurs;
   }
 

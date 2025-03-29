@@ -84,7 +84,7 @@ export class UsineService {
         }
           result.push(s);
       }
-      console.log("doneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+      
 
       
       return result;

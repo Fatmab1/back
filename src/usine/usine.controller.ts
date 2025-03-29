@@ -144,4 +144,6 @@ export class UsineController {
       throw new InternalServerErrorException('Impossible de supprimerle nœud');
     }
    }
-}
+
+  }
+
