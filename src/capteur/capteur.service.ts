@@ -82,14 +82,17 @@ export class CapteurService {
   // Créer un capteur
   async create(type: string, id_machine: number): Promise<Capteur> {
     // Vérifie si la machine existe
+    console.log("aaaaaaaaaaaaaaa",type,"zzzzzzzzzzzz",id_machine);
+    
     const machine = await this.machineRepository.findOne({ where: { id_machine } });
     if (!machine) {
       throw new NotFoundException(`Machine avec ID ${id_machine} non trouvée`);
     }
 
+
     const capteur = this.capteurRepository.create({
-      type,  // Associe le type au capteur
-      machine,  // Associe le capteur à la machine via la relation
+      type : type,  // Associe le type au capteur
+      machine:machine,  // Associe le capteur à la machine via la relation
     });
 
     return this.capteurRepository.save(capteur);
